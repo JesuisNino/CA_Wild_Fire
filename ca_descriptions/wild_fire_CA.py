@@ -29,27 +29,21 @@ def setup(args):
 
     # ---- Override the defaults below (these may be changed at anytime) ----
 
-    # states are organised least flamable to most
     # town,lake,Forest,chaparral,canyon,burnt,burning
+    townColour = (0,0,0)
+    lakeColour = (0,165/255,1)
+    forestColour = (6/255,109/255,57/255)
+    chaparralColour = (179/255,189/255,0)
+    canyonColour = (1,1,0)
+    burntColour = (20/255,20/255,20/255)
+    fireColour = (1,108/255,0)
 
-    config.state_colors = [(0,0,0),(0,165/255,1),(6/255,109/255,57/255),(179/255,189/255,0),(1,1,0),(0,0,0),(1,108/255,0)]
+    config.state_colors = [townColour,lakeColour,forestColour,chaparralColour,canyonColour,burntColour,fireColour]
     config.grid_dims = (50,50)
 
     config.initial_grid = np.full(config.grid_dims, 3)
 
-    #generate the forest
-
-    drawState(config,[0,30],[25,15],2)
-    drawState(config,[15,45],[25,30], 2)
-
-    #generate the lake
-    drawState(config,[5,33],[25,30],1)
-
-    #generate the canyon
-    drawState(config,[30,45],[32,10],4)
-
-    #generate the town
-    drawState(config,[18,7],[21,4],0)
+    drawInitialState(config)
 
     # ----------------------------------------------------------------------
 
@@ -61,9 +55,24 @@ def setup(args):
         sys.exit()
     return config
 
+def drawInitialState(config):
+    #generate the forest
+    drawState(config,[0,30],[25,15],2)
+    drawState(config,[15,45],[25,30], 2)
+    
+    #generate the lake
+    drawState(config,[5,33],[25,30],1)
+
+    #generate the canyon
+    drawState(config,[30,45],[32,10],4)
+
+    #generate the town
+    drawState(config,[18,7],[21,4],0)
+
 def drawState(self, topLeft, bottomRight, state):
     topLeft[1] = self.grid_dims[1] - topLeft[1]
     bottomRight[1] = self.grid_dims[1] - bottomRight[1]
+
     for i in range(topLeft[0], bottomRight[0]):
         for j in range(topLeft[1],bottomRight[1]):
             self.initial_grid[j][i] = state
