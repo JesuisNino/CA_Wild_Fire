@@ -42,9 +42,7 @@ def setup(args):
     config.state_colors = [townColour,lakeColour,forestColour,chaparralColour,canyonColour,burntColour,fireColour]
     config.grid_dims = (50,50)
 
-    config.initial_grid = np.full(config.grid_dims, 3)
-
-    drawInitialState(config)
+    config.initial_grid = drawInitialState()
 
     # ----------------------------------------------------------------------
 
@@ -56,29 +54,33 @@ def setup(args):
         sys.exit()
     return config
 
-# change this and drawState() to return the matrix of states instead of updating config directly
-# so we can use it to regenerate the initial state in the transition function
-def drawInitialState(config):
+def drawInitialState():
+    initial_grid = np.full((50,50), 3)
+
     #generate the forest
-    drawState(config,[0,30],[25,15],2)
-    drawState(config,[15,45],[25,30], 2)
+    initial_grid = drawState(initial_grid,[0,30],[25,15],2)
+    initial_grid = drawState(initial_grid,[15,45],[25,30], 2)
 
     #generate the lake
-    drawState(config,[5,33],[25,30],1)
+    initial_grid = drawState(initial_grid,[5,33],[25,30],1)
 
     #generate the canyon
-    drawState(config,[30,45],[32,10],4)
+    initial_grid = drawState(initial_grid,[30,45],[32,10],4)
 
     #generate the town
-    drawState(config,[18,7],[21,4],0)
+    initial_grid = drawState(initial_grid,[18,7],[21,4],0)
 
-def drawState(self, topLeft, bottomRight, state):
-    topLeft[1] = self.grid_dims[1] - topLeft[1]
-    bottomRight[1] = self.grid_dims[1] - bottomRight[1]
+    return initial_grid
+
+def drawState(grid, topLeft, bottomRight, state):
+    topLeft[1] = len(grid) - topLeft[1]
+    bottomRight[1] = len(grid) - bottomRight[1]
 
     for i in range(topLeft[0], bottomRight[0]):
         for j in range(topLeft[1],bottomRight[1]):
-            self.initial_grid[j][i] = state
+            grid[j][i] = state
+
+    return grid
 
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
