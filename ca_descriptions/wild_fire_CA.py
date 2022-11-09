@@ -25,6 +25,7 @@ def setup(args):
     config.title = "Wild Fire CA"
     config.dimensions = 2
     config.states = [0,1,2,3,4,5,6]
+    #config.wrap = False
     # -------------------------------------------------------------------------
 
     # ---- Override the defaults below (these may be changed at anytime) ----
@@ -35,7 +36,7 @@ def setup(args):
     forestColour = (6/255,109/255,57/255)
     chaparralColour = (179/255,189/255,0)
     canyonColour = (1,1,0)
-    burntColour = (20/255,20/255,20/255)
+    burntColour = (100/255,100/255,100/255)
     fireColour = (1,108/255,0)
 
     config.state_colors = [townColour,lakeColour,forestColour,chaparralColour,canyonColour,burntColour,fireColour]
@@ -59,7 +60,7 @@ def drawInitialState(config):
     #generate the forest
     drawState(config,[0,30],[25,15],2)
     drawState(config,[15,45],[25,30], 2)
-    
+
     #generate the lake
     drawState(config,[5,33],[25,30],1)
 
@@ -80,7 +81,7 @@ def drawState(self, topLeft, bottomRight, state):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    # YOUR CODE HERE
+    
     return grid
 
 

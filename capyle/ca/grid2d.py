@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from capyle.ca import Grid, Neighbourhood
 from capyle.utils import clip_numeric
