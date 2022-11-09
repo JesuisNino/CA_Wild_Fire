@@ -56,6 +56,8 @@ def setup(args):
         sys.exit()
     return config
 
+# change this and drawState() to return the matrix of states instead of updating config directly
+# so we can use it to regenerate the initial state in the transition function
 def drawInitialState(config):
     #generate the forest
     drawState(config,[0,30],[25,15],2)
@@ -81,7 +83,21 @@ def drawState(self, topLeft, bottomRight, state):
 def transition_function(grid, neighbourstates, neighbourcounts):
     """Function to apply the transition rules
     and return the new grid"""
-    
+    #need to store the initial state 
+
+    # for lake state (doesn't burn at all)
+    # stay lake no matter what the neighbourhood is
+
+    # for canyon (catches fire very easily and burns out quickly)
+    # if >0 neighbours are burning: burn
+    # if initial was canyon and currently burning: burnt
+
+    # for chaparral (catches fire quite easily and burns for longer)
+    # if >1 neighbours are burning: burn (more likely to catch fire if northern neighbours are burning) 
+
+    # for forest (doesn't catch fire easily but burns for a long time)
+    # if >2 neighbours are burning: burn (more likely to catch fire if northern neighbours are burning) 
+
     return grid
 
 
