@@ -105,13 +105,17 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     CHAPARRAL_NEIGHBOURS = 2 #default 2
     FOREST_NEIGHBOURS = 4 #default 3
 
-    CANYON_BURN_TIME = 1
-    CHAPARRAL_BURN_TIME = 1/7
-    FOREST_BURN_TIME = 1/30 
+    CANYON_BURN_TIME = 1 #default 1
+    CHAPARRAL_BURN_TIME = 1/7 #default 1/7
+    FOREST_BURN_TIME = 1/30 #default 1/30
+
+    CANYON_REGROWTH = 1/14
+    CHAPARRAL_REGROWTH = 1/30
+
 
     # Town 0, Lake 1, Forest 2, Chaparral 3, Canyon 4, Burnt 5, Burning 6
 
-    #nw, n, ne, w, e, sw, s, se = neighbourstates
+    #nw, n, ne, w, e, sw, s, se = neighbourstates # used for implementing wind
     tn,lk,fr,ch,ca,bnt,burning = neighbourcounts
 
     INITIAL_GRID = drawInitialState(False)
@@ -119,26 +123,34 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     town = grid==0
     lake = grid==1
 
+    # Calculates which cells should be burnt
+
     burningForest = (grid==6) & (INITIAL_GRID==2)
     burningChaparral = (grid==6) & (INITIAL_GRID==3)
     burningCanyon = (grid==6) & (INITIAL_GRID==4)
 
     burnt = (grid==5)
 
-    burnt = burnt | (burningForest & (np.random.uniform(0,1,2500).reshape(50,50) < FOREST_BURN_TIME))
+    burnt = burnt | (burningForest & randomMatrix(grid, FOREST_BURN_TIME))
     burnt = burnt | (burningChaparral & (np.random.uniform(0,1,2500).reshape(50,50) < CHAPARRAL_BURN_TIME))
     burnt = burnt | (burningCanyon & (np.random.uniform(0,1,2500).reshape(50,50) < CANYON_BURN_TIME))
 
-    # can update the burning algorithm
-
-    forest = (grid==2) & (burning < FOREST_NEIGHBOURS) 
     
+    # calculates which cells should remain as they were
+    forest = (grid==2) & (burning < FOREST_NEIGHBOURS) 
+        
     chaparral = (grid==3) & (burning < CHAPARRAL_NEIGHBOURS)
-
+    
     canyon = (grid==4) & (burning < CANYON_NEIGHBOURS)
 
+    # Calculates which cells regrow
+    chaparral = chaparral | (burnt & (burning == 0) &(INITIAL_GRID == 3) & (np.random.uniform(0,1,2500).reshape(50,50) < CHAPARRAL_REGROWTH))
+    canyon = canyon | (burnt & (burning == 0) &(INITIAL_GRID == 4) & (np.random.uniform(0,1,2500).reshape(50,50) < CANYON_REGROWTH))
+
+    # sets the entire grid to burning
     grid[:, :] = 6
 
+    # alters the grid to add the other states back in based on the calculations above
     grid[town] = 0
     grid[lake] = 1
     grid[burnt] = 5
@@ -149,6 +161,8 @@ def transition_function(grid, neighbourstates, neighbourcounts):
 
     return grid
 
+def randomMatrix(grid, weight):
+    return np.random.uniform(0,1,len(grid)*len(grid[0])).reshape(len(grid),len(grid[0])) < weight
 
 def main():
     """ Main function that sets up, runs and saves CA"""
