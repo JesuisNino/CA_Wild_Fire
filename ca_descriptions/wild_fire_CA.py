@@ -45,7 +45,7 @@ def setup(args):
     config.grid_dims = (50,50)
 
     # sets the grid to a predefined initial state represeted as a 2d list of integers between 0 and 6
-    config.initial_grid = drawInitialState()
+    config.initial_grid = drawInitialState(True)
 
     # ----------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ def setup(args):
     return config
 
 # Function that returns a 2d list of the initial states of the map
-def drawInitialState():
+def drawInitialState(addFire):
     initial_grid = np.full((50,50), 3)
 
     #generates the forest
@@ -74,7 +74,12 @@ def drawInitialState():
     #generates the town
     initial_grid = drawState(initial_grid,[18,7],[21,4],0)
 
-    initial_grid = drawState(initial_grid,[1,49],[4,48],6)
+    if addFire:
+        # generates starting fire near the power plant
+        initial_grid = drawState(initial_grid,[1,49],[4,48],6)
+
+        # generates starting fire near the incinerator
+        #initial_grid = drawState(initial_grid,[46,49],[49,49],6)
 
     return initial_grid
 
@@ -98,95 +103,51 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     # constant parameters to control how many neighbours need to be burning to catch fire
     CANYON_NEIGHBOURS = 1 #default 1
     CHAPARRAL_NEIGHBOURS = 2 #default 2
-    FOREST_NEIGHBOURS = 3 #default 3
+    FOREST_NEIGHBOURS = 4 #default 3
 
-    # constant parameters to control the threshold for the random chance a cell will catch fire
-    # not yet implemented
-    CANYON_BURN_CHANCE = 1 #default 1
-    CHAPARRAL_BURN_CHANCE = 0.7 #default 0.7
-    FOREST_BURN_CHANCE = 0.2 #default 0.2
-
-    # constant parameters to control the threshold for the random length of time a cell will burn for
-
-    CANYON_BURN_TIME = 1 #default 1 (1 day on average)
-    CHAPARRAL_BURN_TIME = 1/7 #default 1/7 (1 week on average)
-    FOREST_BURN_TIME = 1/30 #default 1/30 (1 month on average)
-
-    # constant parameters to control the threshold for the random regrowth speed of Chaparral and Canyon
-    # forest will not regrow in the timeframe of the simulation
-
-    CANYON_REGROW = 1/7 #default 1/7 (1 week on average)
-    CHAPARRAL_REGROW = 1/30 #default 1/30 (1 month on average)
-
+    CANYON_BURN_TIME = 1
+    CHAPARRAL_BURN_TIME = 1/7
+    FOREST_BURN_TIME = 1/30 
 
     # Town 0, Lake 1, Forest 2, Chaparral 3, Canyon 4, Burnt 5, Burning 6
-    newGrid = drawInitialState()
+
+    #nw, n, ne, w, e, sw, s, se = neighbourstates
+    tn,lk,fr,ch,ca,bnt,burning = neighbourcounts
+
+    INITIAL_GRID = drawInitialState(False)
+
+    town = grid==0
+    lake = grid==1
+
+    burningForest = (grid==6) & (INITIAL_GRID==2)
+    burningChaparral = (grid==6) & (INITIAL_GRID==3)
+    burningCanyon = (grid==6) & (INITIAL_GRID==4)
+
+    burnt = (grid==5)
+
+    burnt = burnt | (burningForest & (np.random.uniform(0,1,2500).reshape(50,50) < FOREST_BURN_TIME))
+    burnt = burnt | (burningChaparral & (np.random.uniform(0,1,2500).reshape(50,50) < CHAPARRAL_BURN_TIME))
+    burnt = burnt | (burningCanyon & (np.random.uniform(0,1,2500).reshape(50,50) < CANYON_BURN_TIME))
+
+    # can update the burning algorithm
+
+    forest = (grid==2) & (burning < FOREST_NEIGHBOURS) 
     
-    for x in range (len(grid)):
-        for y in range (len(grid[0])):
+    chaparral = (grid==3) & (burning < CHAPARRAL_NEIGHBOURS)
 
-            # for lake state (doesn't burn at all) no transition function is required
+    canyon = (grid==4) & (burning < CANYON_NEIGHBOURS)
 
-            # no functions for town state either 
+    grid[:, :] = 6
 
-            # for canyon (catches fire very easily and burns quickly)
-            if newGrid[x][y] == 4:
-                
-                # if enough neighbours are burning: burn
-                if (neighbourstates==6).sum() >= CANYON_NEIGHBOURS and grid[x][y] == 4:
-                    newGrid[x][y] = 6
+    grid[town] = 0
+    grid[lake] = 1
+    grid[burnt] = 5
+    grid[forest] = 2
+    grid[chaparral] = 3
+    grid[canyon] = 4
+    
 
-                # sets the cell state to burnt if it was burning (weighted random)
-                elif grid[x][y] == 6 and random.uniform(0,1) < CANYON_BURN_TIME:
-                    newGrid[x][y] == 5
-
-                # if the random failed then keep burning
-                elif grid[x][y] == 6:
-                    newGrid[x][y] = 6
-
-                # regrows the cell to its initial state (weighted random)
-                elif grid[x][y] == 5 and random.uniform(0,1) > CANYON_REGROW:
-                    newGrid[x][y] = 5
-                
-            # for chaparral (catches fire quite easily and burns for longer)
-            elif newGrid[x][y] == 3: 
-            
-                # if enough neighbours are burning: burn 
-                if (neighbourstates==6).sum() >= CHAPARRAL_NEIGHBOURS and grid[x][y] == 3:
-                    newGrid[x][y] = 6
-
-                # sets the cell state to burnt if it was burning (weighted random)
-                elif grid[x][y] == 6 and random.uniform(0,1) < CHAPARRAL_BURN_TIME:
-                    newGrid[x][y] = 5
-
-                # if the random failed then keep burning
-                elif grid[x][y] == 6:
-                    newGrid[x][y] = 6
-                
-                # regrows the cell to its initial state (weighted random)
-                elif grid[x][y] == 5 and random.uniform(0,1) > CHAPARRAL_REGROW:
-                    newGrid[x][y] = 5
-            
-            # for forest (doesn't catch fire easily but burns for a long time)
-            elif newGrid[x][y] == 2: 
-
-                # if enough neighbours are burning: burn
-                if (neighbourstates==6).sum() >= FOREST_NEIGHBOURS and grid[x][y] == 2:
-                    newGrid[x][y] = 6
-                
-                # sets the cell state to burnt if it was burning (weighted random)
-                elif grid[x][y] == 6 and random.uniform(0,1) < FOREST_BURN_TIME:
-                    newGrid[x][y] = 5
-
-                # if the random failed then keep burning
-                elif grid[x][y] == 6:
-                    newGrid[x][y] = 6
-
-                # regrows the cell to its initial state (weighted random)
-                elif grid[x][y] == 5:
-                    newGrid[x][y] = 5
-
-    return newGrid
+    return grid
 
 
 def main():
