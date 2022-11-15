@@ -126,9 +126,10 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     CHAPARRAL_BURN_TIME = 1/14 #default 1/7
     FOREST_BURN_TIME = 1/60 #default 1/30
 
+    REGROWTH = False
     # closer to 1 means it regrows faster
-    # CANYON_REGROWTH = 1/14 #default 1/14
-    # CHAPARRAL_REGROWTH = 1/30 #default 1/30
+    CANYON_REGROWTH = 1/14 #default 1/14
+    CHAPARRAL_REGROWTH = 1/30 #default 1/30
 
     scale = int(len(grid)/50)
 
@@ -165,8 +166,9 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     canyon = canyon | (grid==4) & (burning >= CANYON_NEIGHBOURS) & randomMatrix(grid, CANYON_BURN_CHANCE)
 
     # Calculates which cells regrow
-    # chaparral = chaparral | (burnt & (burning == 0) &(INITIAL_GRID == 3) & randomMatrix(grid, CHAPARRAL_REGROWTH))
-    # canyon = canyon | (burnt & (burning == 0) &(INITIAL_GRID == 4) & randomMatrix(grid, CANYON_REGROWTH))
+    if REGROWTH:
+        chaparral = chaparral | (burnt & (burning == 0) &(INITIAL_GRID == 3) & randomMatrix(grid, CHAPARRAL_REGROWTH))
+        canyon = canyon | (burnt & (burning == 0) &(INITIAL_GRID == 4) & randomMatrix(grid, CANYON_REGROWTH))
 
     # sets the entire grid to burning
     grid[:, :] = 6
