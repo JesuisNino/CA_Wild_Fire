@@ -26,7 +26,7 @@ def setup(args):
     config.title = "Wild Fire CA"
     config.dimensions = 2
     config.states = [0,1,2,3,4,5,6]
-    config.num_generations = 250
+    config.num_generations = 300
     config.wrap = False
 
     # -------------------------------------------------------------------------
@@ -82,10 +82,10 @@ def drawInitialState(addFire, scale):
 
     if addFire:
         # generates starting fire near the power plant
-        #initial_grid = drawState(initial_grid,scale,[1,49],[4,48],6)
+        # initial_grid = drawState(initial_grid,scale,[1,49],[4,48],6)
 
         # generates starting fire near the incinerator
-        initial_grid = drawState(initial_grid,scale,[46,49],[49,48],6)
+        initial_grid = drawState(initial_grid,scale,[49,50],[50,49],6)
 
     return initial_grid
 
@@ -116,16 +116,22 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     CHAPARRAL_NEIGHBOURS = 2 #default 2
     FOREST_NEIGHBOURS = 3 #default 3
 
+    # These parameters are weights to control the likelyhood that each terrain type will catch fire
     # closer to 0 means it is more likely to catch fire
     CANYON_BURN_CHANCE = 0 #default 0
-    CHAPARRAL_BURN_CHANCE = 0.3 #default 0.3
+    CHAPARRAL_BURN_CHANCE = 0.5 #default 0.3
     FOREST_BURN_CHANCE = 0.8 #default 0.8
 
+    # These paramaters are weights to control the lieklyhood that each terrain type will burn out
     # closer to 1 means it burns out faster
-    CANYON_BURN_TIME = 1/2 #default 1
-    CHAPARRAL_BURN_TIME = 1/14 #default 1/7
-    FOREST_BURN_TIME = 1/60 #default 1/30
+    CANYON_BURN_TIME = 1/10 #default 1
+    CHAPARRAL_BURN_TIME = 1/70 #default 1/7
+    FOREST_BURN_TIME = 1/300 #default 1/30
 
+    # this is an optional regrowth feature for the fast growing terrain types.
+    # this is disabled by default since the default simulation is only modelling a few days
+    REGROWTH = False #default False
+    
     # closer to 1 means it regrows faster
     CANYON_REGROWTH = 1/14 #default 1/14
     CHAPARRAL_REGROWTH = 1/30 #default 1/30
@@ -134,8 +140,13 @@ def transition_function(grid, neighbourstates, neighbourcounts):
 
     # Town 0, Lake 1, Forest 2, Chaparral 3, Canyon 4, Burnt 5, Burning 6
 
+    # gets the number of each terrain type for every cell in the grid
+    # and assigns each list to a variable, burning is the only useful one to us
+    tn,lk,fr,ch,ca,bnt,burning = neighbourcounts
+
+
     # set the wind direction
-    WIND_DIRECT = [1, 1]     # [north, east]
+    WIND_DIRECT = [0, 1]     # [north, east]
 
     # nw, n, ne, w, e, sw, s, se = neighbourstates # used for implementing wind
     wind_direct_weight = weightByWind(WIND_DIRECT)
@@ -144,35 +155,43 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     # tn,lk,fr,ch,ca,bnt,burning = neighbourcounts
     burning = burning_weighted
 
+    # gets the initial grid without any fire
     INITIAL_GRID = drawInitialState(False,scale)
 
+    # town and lake terrain types are not affected by the fire
     town = grid==0
     lake = grid==1
 
     # Calculates which cells should be burnt
 
+    # matrices that contain all the burning cells for each terrain type
     burningForest = (grid==6) & (INITIAL_GRID==2)
     burningChaparral = (grid==6) & (INITIAL_GRID==3)
     burningCanyon = (grid==6) & (INITIAL_GRID==4)
 
+    # a matrix that contains all of the burnt cells
     burnt = (grid==5)
 
+    # increases the number of burnt cells by adding cells that have burnt out
     burnt = burnt | (burningForest & randomMatrix(grid, FOREST_BURN_TIME))
     burnt = burnt | (burningChaparral & randomMatrix(grid, CHAPARRAL_BURN_TIME))
     burnt = burnt | (burningCanyon & randomMatrix(grid, CANYON_BURN_TIME))
 
-    # calculates which cells should remain as they were
-    forest = (grid==2) & (burning < FOREST_NEIGHBOURS)
-    chaparral = (grid==3) & (burning < CHAPARRAL_NEIGHBOURS)
+    
+    # calculates which cells should remain unburnt
+    forest = (grid==2) & (burning < FOREST_NEIGHBOURS) 
+    chaparral = (grid==3) & (burning < CHAPARRAL_NEIGHBOURS)       
     canyon = (grid==4) & (burning < CANYON_NEIGHBOURS)
 
+    # decreases the number of burning cells by randomly adding them back to the unburnt matrices
     forest = forest | (grid==2) & (burning >= FOREST_NEIGHBOURS) & randomMatrix(grid,FOREST_BURN_CHANCE)
     chaparral = chaparral | (grid==3) & (burning >= CHAPARRAL_NEIGHBOURS) & randomMatrix(grid,CHAPARRAL_BURN_CHANCE)
     canyon = canyon | (grid==4) & (burning >= CANYON_NEIGHBOURS) & randomMatrix(grid, CANYON_BURN_CHANCE)
 
-    # Calculates which cells regrow
-    chaparral = chaparral | (burnt & (burning == 0) &(INITIAL_GRID == 3) & randomMatrix(grid, CHAPARRAL_REGROWTH))
-    canyon = canyon | (burnt & (burning == 0) &(INITIAL_GRID == 4) & randomMatrix(grid, CANYON_REGROWTH))
+    # Calculates which cells regrow if regrowth is turned on
+    if REGROWTH:
+        chaparral = chaparral | (burnt & (burning == 0) &(INITIAL_GRID == 3) & randomMatrix(grid, CHAPARRAL_REGROWTH))
+        canyon = canyon | (burnt & (burning == 0) &(INITIAL_GRID == 4) & randomMatrix(grid, CANYON_REGROWTH))
 
     # sets the entire grid to burning
     grid[:, :] = 6
@@ -187,10 +206,6 @@ def transition_function(grid, neighbourstates, neighbourcounts):
     
 
     return grid
-
-def randomMatrix(grid, weight):
-    ret = np.random.uniform(0,1,len(grid)*len(grid[0])).reshape(len(grid),len(grid[0])) < weight
-    return ret
 
 def weightByWind(wind_direction):
     wind_direction = np.array(wind_direction)
@@ -210,6 +225,9 @@ def weightByWind(wind_direction):
     weights = ((wind_direction[None, :] * eight_directions).sum(axis=-1) + 1.0)
     return weights
 
+
+def randomMatrix(grid, weight):
+    return np.random.uniform(0,1,len(grid)*len(grid[0])).reshape(len(grid),len(grid[0])) < weight
 
 def main():
     """ Main function that sets up, runs and saves CA"""
