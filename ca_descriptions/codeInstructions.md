@@ -46,3 +46,19 @@ you would like to change, followed by the state you wish to change it to.
 | canyon | 4 |
 | burnt | 5 |
 | burning | 6 |
+
+## Changing The Wind Direction
+Navigate to __weightByWind()__ on *Line 210* in __CA_Wild_Fire.py__ as above.
+This method is responsible for creating different wind directions. This method must be passed __WIND_DIRECT__ to calculate the correspond wind direction.
+You can change the wind direction (__WIND_DIRECT__) by the following states.
+
+| wind direction | state code |
+| --- | --- |
+| East | [1,0] |
+| West | [-1,0] |
+| South | [0,-1] |
+| North | [0,1] |
+| North East | [1,1] |
+| South East | [1,-1] |
+| North West | [-1,1] |
+| South West | [-1,-1] |
